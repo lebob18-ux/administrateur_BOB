@@ -1,9 +1,10 @@
 /* ============================================================
    CONFIGURATION SUPABASE
    ============================================================ */
-// Remplace par tes propres clés Supabase (les mêmes que tes autres apps)
-const SUPABASE_URL = "https://thbqkeugjvsxbryfnzuo.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_2-Ij-nrTPeK6rB-kSD-QTg_b42zNakq";
+// Remplace par tes propres clés Supabase
+const SUPABASE_URL = "TON_URL_SUPABASE";
+const SUPABASE_ANON_KEY = "TA_CLE_ANON_SUPABASE";
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Mot de passe unique requis
@@ -48,6 +49,7 @@ function afficherApplication() {
    ============================================================ */
 async function chargerTableauUtilisateurs() {
   const container = document.getElementById("utilisateurs-container");
+  if (!container) return;
   container.innerHTML = `<p style="color:#666; font-size:0.9em;">Chargement des utilisateurs...</p>`;
 
   try {
@@ -84,10 +86,10 @@ async function chargerTableauUtilisateurs() {
             <span style="color:#666; font-size:0.75em;">${user.email || ''}</span>
           </td>
           <td style="text-align: center;">
-            <input type="checkbox" ${user.fbm ? 'checked' : ''} onchange="modifierDroit('${user.email}', 'fbm', this.checked)" style="transform: scale(1.2); cursor: pointer;">
+            <input type="checkbox" ${user.fbm ? 'checked' : ''} onchange="modifierDroitUtilisateur('${user.email}', 'fbm', this.checked)" style="transform: scale(1.2); cursor: pointer;">
           </td>
           <td style="text-align: center;">
-            <input type="checkbox" ${user.admin ? 'checked' : ''} onchange="modifierDroit('${user.email}', 'admin', this.checked)" style="transform: scale(1.2); cursor: pointer;">
+            <input type="checkbox" ${user.admin ? 'checked' : ''} onchange="modifierDroitUtilisateur('${user.email}', 'admin', this.checked)" style="transform: scale(1.2); cursor: pointer;">
           </td>
         </tr>
       `;
@@ -101,7 +103,7 @@ async function chargerTableauUtilisateurs() {
   }
 }
 
-async function modifierDroit(email, colonne, valeur) {
+async function modifierDroitUtilisateur(email, colonne, valeur) {
   try {
     const updateData = {};
     updateData[colonne] = valeur;
@@ -123,12 +125,15 @@ async function modifierDroit(email, colonne, valeur) {
    ============================================================ */
 async function chargerTableauChantiers() {
   const container = document.getElementById("chantiers-container");
+  if (!container) return;
   container.innerHTML = `<p style="color:#666; font-size:0.9em;">Chargement des chantiers...</p>`;
 
   try {
+    // .range(0, 9999) permet de lever la limite par défaut des 1000 lignes de Supabase
     const { data, error } = await supabaseClient
       .from('chantiers')
-      .select('*'); // Récupère toutes les colonnes sans exception
+      .select('*')
+      .range(0, 9999);
 
     if (error) throw error;
 
@@ -137,8 +142,7 @@ async function chargerTableauChantiers() {
       return;
     }
 
-    // Récupère dynamiquement toutes les clés (colonnes) de la première ligne de données
-    // On exclut éventuellement 'id' de l'affichage en en-tête brut si on veut, ou on le garde
+    // Récupère dynamiquement toutes les colonnes présentes dans la table
     const colonnes = Object.keys(data[0]);
 
     let html = `
@@ -148,7 +152,6 @@ async function chargerTableauChantiers() {
             <tr>
     `;
 
-    // Création dynamique des en-têtes du tableau
     colonnes.forEach(col => {
       html += `<th style="text-transform: uppercase; font-size: 0.75em;">${col}</th>`;
     });
@@ -160,20 +163,24 @@ async function chargerTableauChantiers() {
           <tbody>
     `;
 
-    // Remplissage dynamique des lignes
     data.forEach(row => {
       html += `<tr>`;
       colonnes.forEach(col => {
         let valeur = row[col];
-        // Gère l'affichage propre des valeurs booléennes ou nulles
-        if (valeur === true) valeur = '✅';
-        if (valeur === false) valeur = '❌';
-        if (valeur === null || valeur === undefined) valeur = '';
-
-        html += `<td style="padding: 6px; font-size: 0.8em;">${valeur}</td>`;
+        
+        // Si la colonne est un booléen, on affiche une case à cocher interactive liée à Supabase
+        if (typeof valeur === 'boolean' || valeur === true || valeur === false) {
+          const estCoche = valeur ? 'checked' : '';
+          html += `<td style="padding: 6px; text-align: center;">
+                    <input type="checkbox" ${estCoche} onchange="modifierValeurChantier(${row.id}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
+                   </td>`;
+        } else {
+          if (valeur === null || valeur === undefined) valeur = '';
+          html += `<td style="padding: 6px; font-size: 0.8em;">${valeur}</td>`;
+        }
       });
 
-      // Bouton de suppression (nécessite que la table possède une colonne 'id')
+      // Bouton de suppression de la ligne (nécessite une colonne 'id')
       html += `
           <td style="text-align: center;">
             <button onclick="supprimerSupport(${row.id})" style="background:#fee2e2; color:#dc2626; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">🗑️</button>
@@ -186,7 +193,26 @@ async function chargerTableauChantiers() {
     container.innerHTML = html;
   } catch (err) {
     console.error("Erreur chargement chantiers :", err);
-    container.innerHTML = `<p style="color:#666; font-size:0.85em;">Erreur lors du chargement de la table 'chantiers'. Vérifie les colonnes.</p>`;
+    container.innerHTML = `<p style="color:#666; font-size:0.85em;">Erreur lors du chargement de la table 'chantiers'. Vérifie les colonnes et l'existence de 'id'.</p>`;
+  }
+}
+
+async function modifierValeurChantier(idLigne, colonne, nouvelleValeur) {
+  try {
+    const updateData = {};
+    updateData[colonne] = nouvelleValeur;
+
+    const { error } = await supabaseClient
+      .from('chantiers')
+      .update(updateData)
+      .eq('id', idLigne);
+
+    if (error) throw error;
+    console.log(`Ligne ${idLigne} mise à jour : ${colonne} = ${nouvelleValeur}`);
+  } catch (err) {
+    console.error("Erreur mise à jour :", err);
+    alert("❌ Erreur lors de la mise à jour dans Supabase.");
+    chargerTableauChantiers();
   }
 }
 
