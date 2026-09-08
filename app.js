@@ -128,8 +128,7 @@ async function chargerTableauChantiers() {
   try {
     const { data, error } = await supabaseClient
       .from('chantiers')
-      .select('*')
-      .order('chantier', { ascending: true });
+      .select('*'); // Récupère toutes les colonnes sans exception
 
     if (error) throw error;
 
@@ -138,23 +137,44 @@ async function chargerTableauChantiers() {
       return;
     }
 
+    // Récupère dynamiquement toutes les clés (colonnes) de la première ligne de données
+    // On exclut éventuellement 'id' de l'affichage en en-tête brut si on veut, ou on le garde
+    const colonnes = Object.keys(data[0]);
+
     let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Chantier</th>
-            <th>Support</th>
-            <th style="text-align: center;">Action</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
     `;
 
+    // Création dynamique des en-têtes du tableau
+    colonnes.forEach(col => {
+      html += `<th style="text-transform: uppercase; font-size: 0.75em;">${col}</th>`;
+    });
+    html += `<th style="text-align: center; font-size: 0.75em;">Action</th>`;
+    
+    html += `
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    // Remplissage dynamique des lignes
     data.forEach(row => {
+      html += `<tr>`;
+      colonnes.forEach(col => {
+        let valeur = row[col];
+        // Gère l'affichage propre des valeurs booléennes ou nulles
+        if (valeur === true) valeur = '✅';
+        if (valeur === false) valeur = '❌';
+        if (valeur === null || valeur === undefined) valeur = '';
+
+        html += `<td style="padding: 6px; font-size: 0.8em;">${valeur}</td>`;
+      });
+
+      // Bouton de suppression (nécessite que la table possède une colonne 'id')
       html += `
-        <tr>
-          <td>${row.chantier}</td>
-          <td>${row.support}</td>
           <td style="text-align: center;">
             <button onclick="supprimerSupport(${row.id})" style="background:#fee2e2; color:#dc2626; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">🗑️</button>
           </td>
@@ -162,10 +182,11 @@ async function chargerTableauChantiers() {
       `;
     });
 
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
     container.innerHTML = html;
   } catch (err) {
-    container.innerHTML = `<p style="color:#666; font-size:0.85em;">Assure-toi que la table 'chantiers' existe dans Supabase.</p>`;
+    console.error("Erreur chargement chantiers :", err);
+    container.innerHTML = `<p style="color:#666; font-size:0.85em;">Erreur lors du chargement de la table 'chantiers'. Vérifie les colonnes.</p>`;
   }
 }
 
