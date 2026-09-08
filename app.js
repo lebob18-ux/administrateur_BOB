@@ -82,7 +82,7 @@ async function chargerTableauGlobal() {
 
     data.forEach(row => {
       // On cherche un identifiant unique pour la ligne (email ou id)
-      const identifiantLigne = row.email || row.id;
+      const identifiantLigne = row.id !== undefined ? row.id : row.email;
 
       html += `<tr>`;
       colonnes.forEach(col => {
