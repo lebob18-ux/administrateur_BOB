@@ -1,9 +1,10 @@
 /* ============================================================
    CONFIGURATION SUPABASE
    ============================================================ */
-// Remplace par tes propres clés Supabase
 const SUPABASE_URL = "https://thbqkeugjvsxbryfnzuo.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_2-Ij-nrTPeK6rB-kSD-QTg_b42zNakq";
+
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const MOT_DE_PASSE_ADMIN = "Lebob18";
@@ -40,7 +41,7 @@ function afficherApplication() {
 }
 
 /* ============================================================
-   PILOTAGE GLOBAL DE LA TABLE app_bob (Utilisateurs & Chantiers en colonnes)
+   PILOTAGE GLOBAL DE LA TABLE app_bob
    ============================================================ */
 async function chargerTableauGlobal() {
   const container = document.getElementById("utilisateurs-container");
@@ -69,7 +70,6 @@ async function chargerTableauGlobal() {
             <tr>
     `;
 
-    // Affiche les en-têtes de colonnes
     colonnes.forEach(col => {
       html += `<th style="text-transform: uppercase; font-size: 0.75em; padding: 8px;">${col}</th>`;
     });
@@ -81,19 +81,18 @@ async function chargerTableauGlobal() {
     `;
 
     data.forEach(row => {
-      // On cherche un identifiant unique pour la ligne (email ou id)
-      const identifiantLigne = row.id !== undefined ? row.id : row.email;
+      // Utilisation stricte de row.id comme identifiant
+      const idLigne = row.id;
 
       html += `<tr>`;
       colonnes.forEach(col => {
         let valeur = row[col];
 
-        // Si la valeur est un booléen (ou que c'est une colonne de droit/chantier), on met une case à cocher interactive
-        // (Sauf pour l'email, le nom, le prénom ou l'id qu'on laisse en texte brut)
+        // Si c'est un booléen et que ce n'est pas la colonne id
         if ((typeof valeur === 'boolean' || valeur === true || valeur === false) && col !== 'id') {
           const estCoche = valeur ? 'checked' : '';
           html += `<td style="padding: 6px; text-align: center;">
-                    <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase('${identifiantLigne}', '${col}', this.checked, ${row.id ? 'true' : 'false'})" style="transform: scale(1.1); cursor: pointer;">
+                    <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
                    </td>`;
         } else {
           if (valeur === null || valeur === undefined) valeur = '';
@@ -111,29 +110,25 @@ async function chargerTableauGlobal() {
   }
 }
 
-async function modifierCaseSupabase(identifiant, colonne, nouvelleValeur) {
+async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
   try {
-    // On détermine si l'identifiant est un nombre (ID) ou un texte (Email)
-    const estUnId = !isNaN(identifiant);
-    
+    console.log(`Tentative de mise à jour -> ID: ${idLigne}, Colonne: ${colonne}, Valeur: ${nouvelleValeur}`);
+
     const updateData = {};
     updateData[colonne] = nouvelleValeur;
 
-    let query = supabaseClient.from('app_bob').update(updateData);
-    
-    if (estUnId) {
-      query = query.eq('id', parseInt(identifiant));
-    } else {
-      query = query.eq('email', identifiant);
-    }
+    const { data, error } = await supabaseClient
+      .from('app_bob')
+      .update(updateData)
+      .eq('id', idLigne)
+      .select(); // .select() permet de renvoyer la ligne modifiée pour vérifier si Supabase l'a bien prise en compte
 
-    const { error } = await query;
     if (error) throw error;
-    
-    console.log(`Mise à jour réussie : ${colonne} = ${nouvelleValeur}`);
+
+    console.log("Mise à jour réussie dans Supabase. Résultat :", data);
   } catch (err) {
     console.error("Erreur détaillée Supabase :", err);
-    alert("❌ Erreur lors de la mise à jour dans Supabase.");
-    chargerTableauGlobal();
+    alert("❌ Erreur lors de la mise à jour dans Supabase : " + (err.message || err));
+    chargerTableauGlobal(); // Recharge pour remettre la case dans son état d'origine
   }
 }
