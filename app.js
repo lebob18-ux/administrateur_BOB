@@ -111,16 +111,18 @@ async function chargerTableauGlobal() {
   }
 }
 
-async function modifierCaseSupabase(identifiant, colonne, nouvelleValeur, utiliseId) {
+async function modifierCaseSupabase(identifiant, colonne, nouvelleValeur) {
   try {
+    // On détermine si l'identifiant est un nombre (ID) ou un texte (Email)
+    const estUnId = !isNaN(identifiant);
+    
     const updateData = {};
     updateData[colonne] = nouvelleValeur;
 
     let query = supabaseClient.from('app_bob').update(updateData);
     
-    // Si on a un ID on cible par ID, sinon par email
-    if (utiliseId) {
-      query = query.eq('id', identifiant);
+    if (estUnId) {
+      query = query.eq('id', parseInt(identifiant));
     } else {
       query = query.eq('email', identifiant);
     }
@@ -130,7 +132,7 @@ async function modifierCaseSupabase(identifiant, colonne, nouvelleValeur, utilis
     
     console.log(`Mise à jour réussie : ${colonne} = ${nouvelleValeur}`);
   } catch (err) {
-    console.error("Erreur mise à jour :", err);
+    console.error("Erreur détaillée Supabase :", err);
     alert("❌ Erreur lors de la mise à jour dans Supabase.");
     chargerTableauGlobal();
   }
