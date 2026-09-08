@@ -133,3 +133,34 @@ async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
     chargerTableauGlobal();
   }
 }
+async function ajouterUtilisateur() {
+  const email = document.getElementById("new-email").value.trim();
+  const nom = document.getElementById("new-nom").value.trim();
+  const prenom = document.getElementById("new-prenom").value.trim();
+
+  if (!email) {
+    alert("⚠️ L'adresse email est obligatoire.");
+    return;
+  }
+
+  try {
+    // Insère une nouvelle ligne dans app_bob avec l'email, le nom et le prénom
+    const { error } = await supabaseClient
+      .from('app_bob')
+      .insert([{ email: email, nom: nom, prenom: prenom }]);
+
+    if (error) throw error;
+
+    // Nettoie les champs du formulaire
+    document.getElementById("new-email").value = "";
+    document.getElementById("new-nom").value = "";
+    document.getElementById("new-prenom").value = "";
+
+    // Recharge le tableau pour afficher la nouvelle ligne
+    chargerTableauGlobal();
+    console.log("Nouvel utilisateur ajouté avec succès !");
+  } catch (err) {
+    console.error("Erreur lors de l'ajout :", err);
+    alert("❌ Erreur lors de l'ajout de l'utilisateur : " + err.message);
+  }
+}
