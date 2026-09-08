@@ -2,8 +2,8 @@
    CONFIGURATION SUPABASE
    ============================================================ */
 // Remplace par tes propres clés Supabase
-const SUPABASE_URL = "TON_URL_SUPABASE";
-const SUPABASE_ANON_KEY = "TA_CLE_ANON_SUPABASE";
+const SUPABASE_URL = "https://thbqkeugjvsxbryfnzuo.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_2-Ij-nrTPeK6rB-kSD-QTg_b42zNakq";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
