@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration FBM & Chantiers</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- SDK Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Écran de connexion / vérification admin -->
+  <div id="auth-overlay" class="modal-overlay">
+    <div class="modal-box">
+      <h2>🔐 Connexion Admin</h2>
+      <p>Entre ton email autorisé pour accéder au pilotage.</p>
+      <input type="email" id="admin-email-input" placeholder="Ton email admin..." style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+      <button onclick="verifierAccesAdmin()" style="width:100%; padding:10px; background:#7C2270; color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer;">Accéder</button>
+      <p id="auth-error" style="color:red; font-size:0.8em; margin-top:8px; display:none;"></p>
+    </div>
+  </div>
+
+  <!-- Contenu Principal (masqué par défaut tant qu'on n'est pas connecté) -->
+  <div id="main-app" style="display:none; max-width: 600px; margin: 0 auto; padding: 15px;">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1 style="font-size: 1.3em; color: #7C2270;">⚙️ Pilotage Central</h1>
+      <button onclick="deconnexionAdmin()" style="background:#eee; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em;">Déconnexion</button>
+    </header>
+
+    <!-- Section 1 : Gestion des Utilisateurs -->
+    <section class="card">
+      <h2>👥 Gestion des Accès Utilisateurs</h2>
+      <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">Valide les droits FBM ou Admin des utilisateurs.</p>
+      <div id="utilisateurs-container">
+        <p style="color:#999; font-size:0.9em;">Chargement...</p>
+      </div>
+    </section>
+
+    <!-- Section 2 : Gestion des Chantiers / Supports -->
+    <section class="card" style="margin-top: 20px;">
+      <h2>🏗️ Gestion des Chantiers</h2>
+      <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">Ajoute de nouveaux chantiers ou supports en base.</p>
+      
+      <div style="background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 15px;">
+        <input type="text" id="new-chantier" placeholder="Nom du chantier (ex: AINM...)" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+        <input type="text" id="new-support" placeholder="Nom/Numéro du support (ex: P12)" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+        <button onclick="ajouterChantier()" style="background: #16a34a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer;">➕ Ajouter le support</button>
+      </div>
+
+      <div id="chantiers-container">
+        <p style="color:#999; font-size:0.9em;">Chargement des chantiers...</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
