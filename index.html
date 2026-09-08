@@ -10,13 +10,13 @@
 </head>
 <body>
 
-  <!-- Écran de connexion / vérification admin -->
+<!-- Écran de connexion par mot de passe -->
   <div id="auth-overlay" class="modal-overlay">
     <div class="modal-box">
-      <h2>🔐 Connexion Admin</h2>
-      <p>Entre ton email autorisé pour accéder au pilotage.</p>
-      <input type="email" id="admin-email-input" placeholder="Ton email admin..." style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
-      <button onclick="verifierAccesAdmin()" style="width:100%; padding:10px; background:#7C2270; color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer;">Accéder</button>
+      <h2>🔐 Sécurité Admin</h2>
+      <p>Entre le mot de passe de l'application.</p>
+      <input type="password" id="admin-password-input" placeholder="Mot de passe..." style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+      <button onclick="verifierMotDePasse()" style="width:100%; padding:10px; background:#7C2270; color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer;">Connexion</button>
       <p id="auth-error" style="color:red; font-size:0.8em; margin-top:8px; display:none;"></p>
     </div>
   </div>
