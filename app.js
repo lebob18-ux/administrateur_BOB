@@ -117,18 +117,19 @@ async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
     const updateData = {};
     updateData[colonne] = nouvelleValeur;
 
-    const { data, error } = await supabaseClient
+    // On convertit l'ID en string si ton ID Supabase est en texte/uuid, 
+    // ou on le laisse tel quel si c'est un entier. On enlève le .select() bloquant.
+    const { error } = await supabaseClient
       .from('app_bob')
       .update(updateData)
-      .eq('id', idLigne)
-      .select(); // .select() permet de renvoyer la ligne modifiée pour vérifier si Supabase l'a bien prise en compte
+      .eq('id', String(idLigne)); 
 
     if (error) throw error;
 
-    console.log("Mise à jour réussie dans Supabase. Résultat :", data);
+    console.log("Mise à jour validée dans Supabase !");
   } catch (err) {
     console.error("Erreur détaillée Supabase :", err);
     alert("❌ Erreur lors de la mise à jour dans Supabase : " + (err.message || err));
-    chargerTableauGlobal(); // Recharge pour remettre la case dans son état d'origine
+    chargerTableauGlobal();
   }
 }
