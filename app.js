@@ -137,6 +137,7 @@ async function ajouterUtilisateur() {
   const email = document.getElementById("new-email").value.trim();
   const nom = document.getElementById("new-nom").value.trim();
   const prenom = document.getElementById("new-prenom").value.trim();
+  const entreprise = document.getElementById("new-entreprise") ? document.getElementById("new-entreprise").value.trim() : "";
 
   if (!email) {
     alert("⚠️ L'adresse email est obligatoire.");
@@ -144,19 +145,19 @@ async function ajouterUtilisateur() {
   }
 
   try {
-    // Insère une nouvelle ligne dans app_bob avec l'email, le nom et le prénom
     const { error } = await supabaseClient
       .from('app_bob')
-      .insert([{ email: email, nom: nom, prenom: prenom }]);
+      .insert([{ email: email, nom: nom, prenom: prenom, entreprise: entreprise }]);
 
     if (error) throw error;
 
-    // Nettoie les champs du formulaire
     document.getElementById("new-email").value = "";
     document.getElementById("new-nom").value = "";
     document.getElementById("new-prenom").value = "";
+    if (document.getElementById("new-entreprise")) {
+      document.getElementById("new-entreprise").value = "";
+    }
 
-    // Recharge le tableau pour afficher la nouvelle ligne
     chargerTableauGlobal();
     console.log("Nouvel utilisateur ajouté avec succès !");
   } catch (err) {
