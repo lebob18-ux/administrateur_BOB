@@ -1,58 +1,61 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administration Chantiers</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- SDK Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration Chantiers</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7C2270">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <!-- SDK Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<!-- Écran de connexion par mot de passe -->
-  <div id="auth-overlay" class="modal-overlay">
-    <div class="modal-box">
-      <h2>🔐 Sécurité Admin</h2>
-      <p>Entre le mot de passe de l'application.</p>
-      <input type="password" id="admin-password-input" placeholder="Mot de passe..." style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
-      <button onclick="verifierMotDePasse()" style="width:100%; padding:10px; background:#7C2270; color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer;">Connexion</button>
-      <p id="auth-error" style="color:red; font-size:0.8em; margin-top:8px; display:none;"></p>
+    <!-- Écran de connexion par mot de passe -->
+    <div id="auth-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2>🔐 Sécurité Admin</h2>
+            <p>Entre le mot de passe de l'application.</p>
+            <input type="password" id="admin-password-input" placeholder="Mot de passe..." style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+            <button onclick="verifierMotDePasse()" style="width:100%; padding:10px; background:#7C2270; color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer;">Connexion</button>
+            <p id="auth-error" style="color:red; font-size:0.8em; margin-top:8px; display:none;"></p>
+        </div>
     </div>
-  </div>
 
-  <!-- Contenu Principal -->
-  <div id="main-app" style="display:none; max-width: 95%; margin: 0 auto; padding: 15px;">
-    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h1 style="font-size: 1.3em; color: #7C2270;">⚙️ Pilotage Central app_bob</h1>
-      <button onclick="deconnexionAdmin()" style="background:#eee; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em;">Déconnexion</button>
-    </header>
+    <!-- Contenu Principal -->
+    <div id="main-app" style="display:none; max-width: 95%; margin: 0 auto; padding: 15px;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="font-size: 1.3em; color: #7C2270;">⚙️ Pilotage Central app_bob</h1>
+            <button onclick="deconnexionAdmin()" style="background:#eee; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em;">Déconnexion</button>
+        </header>
 
-    <!-- Section : Ajouter un utilisateur -->
-    <section class="card" style="margin-bottom: 20px;">
-      <h2>➕ Ajouter un nouvel utilisateur</h2>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
-        <input type="email" id="new-email" placeholder="Email..." style="flex: 2; min-width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <input type="text" id="new-nom" placeholder="Nom..." style="flex: 1; min-width: 130px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <input type="text" id="new-prenom" placeholder="Prénom..." style="flex: 1; min-width: 130px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <button onclick="ajouterUtilisateur()" style="background:#7C2270; color:white; border:none; padding: 8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">Ajouter</button>
-      </div>
-    </section>
+        <!-- Section : Ajouter un utilisateur -->
+        <section class="card" style="margin-bottom: 20px;">
+            <h2>➕ Ajouter un nouvel utilisateur</h2>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                <input type="email" id="new-email" placeholder="Email..." style="flex: 2; min-width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="text" id="new-nom" placeholder="Nom..." style="flex: 1; min-width: 130px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="text" id="new-prenom" placeholder="Prénom..." style="flex: 1; min-width: 130px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <button onclick="ajouterUtilisateur()" style="background:#7C2270; color:white; border:none; padding: 8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">Ajouter</button>
+            </div>
+        </section>
 
-    <!-- Section : Matrice des Accès -->
-    <section class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h2>👥 Matrice des Accès (Utilisateurs & Chantiers)</h2>
-        <button onclick="chargerTableauGlobal()" style="background:#e5e7eb; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em; font-weight:bold;">🔄 Actualiser</button>
-      </div>
-      <p style="font-size: 0.85em; color: #666; margin-bottom: 15px;">Coche ou décoche directement pour modifier les accès en temps réel.</p>
-      
-      <div id="utilisateurs-container">
-        <p style="color:#999; font-size:0.9em;">Chargement...</p>
-      </div>
-    </section>
-  </div>
+        <!-- Section : Matrice des Accès -->
+        <section class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2>👥 Matrice des Accès (Utilisateurs & Chantiers)</h2>
+                <button onclick="chargerTableauGlobal()" style="background:#e5e7eb; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em; font-weight:bold;">🔄 Actualiser</button>
+            </div>
+            <p style="font-size: 0.85em; color: #666; margin-bottom: 15px;">Coche ou décoche directement pour modifier les accès en temps réel.</p>
+            
+            <div id="utilisateurs-container">
+                <p style="color:#999; font-size:0.9em;">Chargement...</p>
+            </div>
+        </section>
+    </div>
 
-  <script src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
