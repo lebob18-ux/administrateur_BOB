@@ -1,6 +1,6 @@
 {
   "name": "Suivi Travaux SUTX",
-  "short_name": "SUTX",
+  "short_name": "ADMIN_BOB",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f3f4f6",
