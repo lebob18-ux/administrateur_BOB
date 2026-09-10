@@ -81,20 +81,32 @@ async function chargerTableauGlobal() {
     `;
 
     data.forEach(row => {
-      // Utilisation stricte de row.id comme identifiant
       const idLigne = row.id;
 
       html += `<tr>`;
       colonnes.forEach(col => {
         let valeur = row[col];
 
-        // Si c'est un booléen et que ce n'est pas la colonne id
-        if ((typeof valeur === 'boolean' || valeur === true || valeur === false) && col !== 'id') {
+        // 1. Si c'est l'ID : lecture seule
+        if (col === 'id') {
+          html += `<td style="padding: 6px; font-size: 0.8em; white-space: nowrap; color: #888;">${valeur}</td>`;
+        }
+        // 2. Si c'est un booléen (cases à cocher des chantiers/droits)
+        else if (typeof valeur === 'boolean' || valeur === true || valeur === false) {
           const estCoche = valeur ? 'checked' : '';
           html += `<td style="padding: 6px; text-align: center;">
                     <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
                    </td>`;
-        } else {
+        } 
+        // 3. Si c'est la colonne 'entreprise' : champ texte modifiable avec forçage en majuscules
+        else if (col === 'entreprise') {
+          if (valeur === null || valeur === undefined) valeur = '';
+          html += `<td style="padding: 6px;">
+                    <input type="text" value="${valeur}" oninput="this.value = this.value.toUpperCase()" onchange="modifierChampTexteSupabase(${idLigne}, '${col}', this.value)" style="padding: 4px; font-size: 0.8em; border: 1px solid #ccc; border-radius: 4px; width: 130px; text-transform: uppercase;">
+                   </td>`;
+        } 
+        // 4. Autres colonnes en lecture simple
+        else {
           if (valeur === null || valeur === undefined) valeur = '';
           html += `<td style="padding: 6px; font-size: 0.8em; white-space: nowrap;">${valeur}</td>`;
         }
@@ -112,32 +124,49 @@ async function chargerTableauGlobal() {
 
 async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
   try {
-    console.log(`Tentative de mise à jour -> ID: ${idLigne}, Colonne: ${colonne}, Valeur: ${nouvelleValeur}`);
-
     const updateData = {};
     updateData[colonne] = nouvelleValeur;
 
-    // On convertit l'ID en string si ton ID Supabase est en texte/uuid, 
-    // ou on le laisse tel quel si c'est un entier. On enlève le .select() bloquant.
     const { error } = await supabaseClient
       .from('app_bob')
       .update(updateData)
       .eq('id', String(idLigne)); 
 
     if (error) throw error;
-
-    console.log("Mise à jour validée dans Supabase !");
+    console.log("Mise à jour case validée !");
   } catch (err) {
     console.error("Erreur détaillée Supabase :", err);
-    alert("❌ Erreur lors de la mise à jour dans Supabase : " + (err.message || err));
+    alert("❌ Erreur lors de la mise à jour : " + (err.message || err));
     chargerTableauGlobal();
   }
 }
+
+async function modifierChampTexteSupabase(idLigne, colonne, nouvelleValeur) {
+  try {
+    const updateData = {};
+    updateData[colonne] = nouvelleValeur.trim().toUpperCase();
+
+    const { error } = await supabaseClient
+      .from('app_bob')
+      .update(updateData)
+      .eq('id', String(idLigne));
+
+    if (error) throw error;
+    console.log(`Mise à jour [${colonne}] validée pour l'ID ${idLigne} !`);
+  } catch (err) {
+    console.error("Erreur détaillée Supabase :", err);
+    alert("❌ Erreur lors de la mise à jour du texte : " + (err.message || err));
+    chargerTableauGlobal();
+  }
+}
+
 async function ajouterUtilisateur() {
   const email = document.getElementById("new-email").value.trim();
   const nom = document.getElementById("new-nom").value.trim();
   const prenom = document.getElementById("new-prenom").value.trim();
-  const entreprise = document.getElementById("new-entreprise") ? document.getElementById("new-entreprise").value.trim() : "";
+  // Récupération de l'entreprise depuis ton HTML et forçage en majuscules
+  const inputEntrep = document.getElementById("new-entreprise");
+  const entreprise = inputEntrep ? inputEntrep.value.trim().toUpperCase() : "";
 
   if (!email) {
     alert("⚠️ L'adresse email est obligatoire.");
@@ -154,8 +183,8 @@ async function ajouterUtilisateur() {
     document.getElementById("new-email").value = "";
     document.getElementById("new-nom").value = "";
     document.getElementById("new-prenom").value = "";
-    if (document.getElementById("new-entreprise")) {
-      document.getElementById("new-entreprise").value = "";
+    if (inputEntrep) {
+      inputEntrep.value = "";
     }
 
     chargerTableauGlobal();
