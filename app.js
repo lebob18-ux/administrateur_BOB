@@ -57,7 +57,7 @@ function changerTableActive(nomTable) {
     if (titreTableau) titreTableau.textContent = "👥 Matrice des Accès (Utilisateurs & Chantiers)";
     if (descTableau) descTableau.textContent = "Coche ou décoche directement pour modifier les accès en temps réel.";
   } else if (tableActive === "blindage") {
-    if (sectionAjout) sectionAjout.style.display = "none"; // L'ajout d'utilisateur ne concerne pas blindage
+    if (sectionAjout) sectionAjout.style.display = "none";
     if (titreTableau) titreTableau.textContent = "🏗️ Pilotage de la table Blindage";
     if (descTableau) descTableau.textContent = "Modifie directement les données de blindage en temps réel.";
   }
@@ -112,9 +112,9 @@ async function chargerTableauGlobal() {
       colonnes.forEach(col => {
         let valeur = row[col];
 
-        // 1. Si c'est l'ID : lecture seule
-        if (col === 'id') {
-          html += `<td style="padding: 6px; font-size: 0.8em; white-space: nowrap; color: #888;">${valeur}</td>`;
+        // 1. Colonnes en lecture seule (id, created_at, updated_at)
+        if (col === 'id' || col === 'created_at' || col === 'updated_at') {
+          html += `<td style="padding: 6px; font-size: 0.8em; white-space: nowrap; color: #888;">${valeur !== null && valeur !== undefined ? valeur : ''}</td>`;
         }
         // 2. Si c'est un booléen (cases à cocher)
         else if (typeof valeur === 'boolean' || valeur === true || valeur === false) {
@@ -123,17 +123,19 @@ async function chargerTableauGlobal() {
                     <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
                    </td>`;
         } 
-        // 3. Si c'est une colonne texte modifiable (comme 'entreprise' ou autres)
-        else if (col === 'entreprise' || col === 'chantier' || col === 'support' || col === 'type') {
-          if (valeur === null || valeur === undefined) valeur = '';
-          html += `<td style="padding: 6px;">
-                    <input type="text" value="${valeur}" onchange="modifierChampTexteSupabase(${idLigne}, '${col}', this.value)" style="padding: 4px; font-size: 0.8em; border: 1px solid #ccc; border-radius: 4px; width: 110px;">
-                   </td>`;
-        } 
-        // 4. Autres colonnes en lecture simple
+        // 3. Toutes les autres colonnes deviennent des champs texte éditables universels
         else {
           if (valeur === null || valeur === undefined) valeur = '';
-          html += `<td style="padding: 6px; font-size: 0.8em; white-space: nowrap;">${valeur}</td>`;
+          
+          // Forçage spécifique en majuscules pour la colonne 'entreprise' si présente dans app_bob
+          let extraAttr = '';
+          if (col === 'entreprise') {
+            extraAttr = `oninput="this.value = this.value.toUpperCase()"`;
+          }
+
+          html += `<td style="padding: 6px;">
+                    <input type="text" value="${valeur}" ${extraAttr} onchange="modifierChampTexteSupabase(${idLigne}, '${col}', this.value)" style="padding: 4px; font-size: 0.8em; border: 1px solid #ccc; border-radius: 4px; width: 110px;">
+                   </td>`;
         }
       });
       html += `</tr>`;
@@ -169,7 +171,8 @@ async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
 async function modifierChampTexteSupabase(idLigne, colonne, nouvelleValeur) {
   try {
     const updateData = {};
-    updateData[colonne] = nouvelleValeur.trim();
+    // Si c'est l'entreprise, on s'assure d'envoyer en majuscules
+    updateData[colonne] = (colonne === 'entreprise') ? nouvelleValeur.trim().toUpperCase() : nouvelleValeur.trim();
 
     const { error } = await supabaseClient
       .from(tableActive)
