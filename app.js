@@ -397,13 +397,13 @@ function changerTableActive(nomTable) {
 }
 
 // Fonction pour récupérer les deux tables et générer le visuel de synthèse
+// Fonction pour récupérer les deux tables et générer le récapitulatif avec la bonne logique pour le "Prévu à date"
 async function chargerRecapitulatifChantiers() {
   const container = document.getElementById("utilisateurs-container");
   if (!container) return;
   container.innerHTML = `<p style="color:#666; font-size:0.9em;">Génération de la synthèse globale en cours...</p>`;
 
   try {
-    // Récupération en parallèle des deux tables de chantier
     const [resBlindage, resCat] = await Promise.all([
       supabaseClient.from('blindage').select('*').range(0, 9999),
       supabaseClient.from('suivi_tx_cat').select('*').range(0, 9999)
@@ -415,25 +415,35 @@ async function chargerRecapitulatifChantiers() {
     const dataBlindage = resBlindage.data || [];
     const dataCat = resCat.data || [];
 
-    // Regroupement par chantier
     const chantiersMap = {};
 
-    // Traitement Blindage (m3)
+    // Traitement Blindage
     dataBlindage.forEach(row => {
       const chantier = row.chantier ? row.chantier.trim().toUpperCase() : "INCONNU";
       if (!chantiersMap[chantier]) {
-        chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuDate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
+        chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuADate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
       }
-      chantiersMap[chantier].m3PrevuTotal += parseFloat(row.m3_prevu_total || row.m3_prevu || 0);
-      chantiersMap[chantier].m3PrevuDate += parseFloat(row.m3_prevu_date || 0);
-      chantiersMap[chantier].m3ReelDate += parseFloat(row.m3_reel_date || row.m3_reel || 0);
+
+      const m3Prevu = parseFloat(row.m3_prevu || row.m3_prevu_total || 0);
+      const m3Reel = parseFloat(row.m3_reel || row.m3_reel_date || 0);
+
+      // 1. M3 Prévu Total = Somme de tous les prévus
+      chantiersMap[chantier].m3PrevuTotal += m3Prevu;
+
+      // 2. M3 Prévu à date = Somme des M3 prévus uniquement si le réel n'est ni null/undefined ni zéro
+      if (row.m3_reel !== null && row.m3_reel !== undefined && m3Reel !== 0) {
+        chantiersMap[chantier].m3PrevuADate += m3Prevu;
+      }
+
+      // 3. M3 Réel à date = Somme des réels
+      chantiersMap[chantier].m3ReelDate += m3Reel;
     });
 
-    // Traitement Caténaires (Tâches)
+    // Traitement Caténaires (suivi_tx_cat)
     dataCat.forEach(row => {
       const chantier = row.Chantier ? row.Chantier.trim().toUpperCase() : "INCONNU";
       if (!chantiersMap[chantier]) {
-        chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuDate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
+        chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuADate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
       }
       chantiersMap[chantier].totalTaches += 1;
       if (row.Fait === true) {
@@ -441,7 +451,6 @@ async function chargerRecapitulatifChantiers() {
       }
     });
 
-    // Construction du tableau visuel de synthèse
     let html = `
       <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 0.85em;">
@@ -467,16 +476,15 @@ async function chargerRecapitulatifChantiers() {
         const c = chantiersMap[chantier];
         const tauxCat = c.totalTaches > 0 ? Math.round((c.tachesFaites / c.totalTaches) * 100) : 0;
         
-        // Couleur dynamique pour la barre de progression caténaire
-        let couleurBadge = "#dc2626"; // Rouge
-        if (tauxCat > 40) couleurBadge = "#d97706"; // Orange
-        if (tauxCat > 80) couleurBadge = "#16a34a"; // Vert
+        let couleurBadge = "#dc2626";
+        if (tauxCat > 40) couleurBadge = "#d97706";
+        if (tauxCat > 80) couleurBadge = "#16a34a";
 
         html += `
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px; font-weight: bold; color: #7C2270;">🏢 ${chantier}</td>
             <td style="padding: 10px; text-align: center;">${c.m3PrevuTotal.toFixed(1)}</td>
-            <td style="padding: 10px; text-align: center;">${c.m3PrevuDate.toFixed(1)}</td>
+            <td style="padding: 10px; text-align: center; color: #2563eb; font-weight: bold;">${c.m3PrevuADate.toFixed(1)}</td>
             <td style="padding: 10px; text-align: center; font-weight: bold;">${c.m3ReelDate.toFixed(1)}</td>
             <td style="padding: 10px; text-align: center;">${c.tachesFaites} / ${c.totalTaches} tâches</td>
             <td style="padding: 10px; text-align: center;">
