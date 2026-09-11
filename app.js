@@ -49,7 +49,7 @@ function afficherApplication() {
    ============================================================ */
 function changerTableActive(nomTable) {
   tableActive = nomTable;
-  idLigneSelectionnee = null; // Réinitialiser la sélection au changement de table
+  idLigneSelectionnee = null; // Réinitialiser la sélection au changement
   
   const sectionAjout = document.getElementById("section-ajout");
   const titreTableau = document.getElementById("titre-tableau");
@@ -59,17 +59,23 @@ function changerTableActive(nomTable) {
     if (sectionAjout) sectionAjout.style.display = "block";
     if (titreTableau) titreTableau.textContent = "👥 Matrice des Accès (Utilisateurs & Chantiers)";
     if (descTableau) descTableau.textContent = "Coche ou décoche directement pour modifier les accès en temps réel.";
+    chargerTableauGlobal();
   } else if (tableActive === "blindage") {
     if (sectionAjout) sectionAjout.style.display = "none";
     if (titreTableau) titreTableau.textContent = "🏗️ Pilotage de la table Blindage";
     if (descTableau) descTableau.textContent = "Utilise les filtres au-dessus de chaque colonne pour rechercher.";
+    chargerTableauGlobal();
   } else if (tableActive === "suivi_tx_cat") {
     if (sectionAjout) sectionAjout.style.display = "none";
     if (titreTableau) titreTableau.textContent = "⚡ Suivi des Travaux Caténaires (suivi_tx_cat)";
     if (descTableau) descTableau.textContent = "Pilote l'avancement des tâches et observations par support.";
+    chargerTableauGlobal();
+  } else if (tableActive === "recap_chantiers") {
+    if (sectionAjout) sectionAjout.style.display = "none";
+    if (titreTableau) titreTableau.textContent = "📊 Récapitulatif Global des Chantiers";
+    if (descTableau) descTableau.textContent = "Synthèse croisée des volumes de blindage et de l'avancement des caténaires.";
+    chargerRecapitulatifChantiers();
   }
-
-  chargerTableauGlobal();
 }
 
 /* ============================================================
@@ -136,7 +142,7 @@ function initialiserStructureTableau() {
       }
       /* Style de la ligne sélectionnée (clic sur l'ID) */
       .tableau-excel-container tbody tr.ligne-selectionnee td {
-        background-color: #fdf4ff !important; /* Fond légèrement mauve/rose assorti au thème */
+        background-color: #fdf4ff !important;
         border-top: 1px solid #7C2270;
         border-bottom: 1px solid #7C2270;
       }
@@ -236,7 +242,6 @@ function filtrerLignesTableau() {
   if (donneesFiltrees.length === 0) {
     htmlRows = `<tr><td colspan="${colonnes.length}" style="text-align: center; color: #999; padding: 20px;">Aucun résultat trouvé pour ces filtres.</td></tr>`;
   } else {
-    donneesFiltrees.exec = donneesFiltrees.forEach ? true : true; // dummy
     donneesFiltrees.forEach(row => {
       const idLigne = row.id;
       const estSelectionne = (idLigne === idLigneSelectionnee) ? "ligne-selectionnee" : "";
@@ -245,15 +250,15 @@ function filtrerLignesTableau() {
       colonnes.forEach(col => {
         let valeur = row[col];
 
-        // 1. Colonnes en lecture seule (le clic sur l'ID bascule la sélection de la ligne)
+        // 1. Colonnes en lecture seule / Identifiant cliquable
         if (col === 'id') {
           htmlRows += `<td onclick="basculerSelectionLigne(${idLigne})" style="color: #7C2270; font-weight: bold; cursor: pointer;" title="Cliquer pour fixer/libérer la ligne">${valeur}</td>`;
         } else if (col === 'created_at' || col === 'updated_at') {
           htmlRows += `<td style="color: #888;">${valeur !== null && valeur !== undefined ? valeur : ''}</td>`;
         }
-        // 2. Booléens en cases à cocher
-        else if (typeof valeur === 'boolean' || valeur === true || valeur === false) {
-          const estCoche = valeur ? 'checked' : '';
+        // 2. Booléens ou colonne 'Fait' en cases à cocher robustes
+        else if (col === 'Fait' || typeof valeur === 'boolean' || valeur === true || valeur === false) {
+          const estCoche = (valeur === true || valeur === 'true') ? 'checked' : '';
           htmlRows += `<td style="text-align: center;">
                         <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
                        </td>`;
@@ -278,11 +283,11 @@ function filtrerLignesTableau() {
 // Fonction pour basculer la sélection d'une ligne en cliquant sur son ID
 function basculerSelectionLigne(idLigne) {
   if (idLigneSelectionnee === idLigne) {
-    idLigneSelectionnee = null; // Désélectionner si on clique à nouveau
+    idLigneSelectionnee = null;
   } else {
-    idLigneSelectionnee = idLigne; // Sélectionner la nouvelle ligne
+    idLigneSelectionnee = idLigne;
   }
-  filtrerLignesTableau(); // Rafraîchir l'affichage sans perdre les filtres
+  filtrerLignesTableau();
 }
 
 async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
@@ -364,40 +369,10 @@ async function ajouterUtilisateur() {
     alert("❌ Erreur lors de l'ajout de l'utilisateur : " + err.message);
   }
 }
-// Dans changerTableActive, ajoute la gestion de l'affichage pour le récap
-function changerTableActive(nomTable) {
-  tableActive = nomTable;
-  idLigneSelectionnee = null;
-  
-  const sectionAjout = document.getElementById("section-ajout");
-  const titreTableau = document.getElementById("titre-tableau");
-  const descTableau = document.getElementById("desc-tableau");
 
-  if (tableActive === "app_bob") {
-    if (sectionAjout) sectionAjout.style.display = "block";
-    if (titreTableau) titreTableau.textContent = "👥 Matrice des Accès (Utilisateurs & Chantiers)";
-    if (descTableau) descTableau.textContent = "Coche ou décoche directement pour modifier les accès en temps réel.";
-    chargerTableauGlobal();
-  } else if (tableActive === "blindage") {
-    if (sectionAjout) sectionAjout.style.display = "none";
-    if (titreTableau) titreTableau.textContent = "🏗️ Pilotage de la table Blindage";
-    if (descTableau) descTableau.textContent = "Utilise les filtres au-dessus de chaque colonne pour rechercher.";
-    chargerTableauGlobal();
-  } else if (tableActive === "suivi_tx_cat") {
-    if (sectionAjout) sectionAjout.style.display = "none";
-    if (titreTableau) titreTableau.textContent = "⚡ Suivi des Travaux Caténaires (suivi_tx_cat)";
-    if (descTableau) descTableau.textContent = "Pilote l'avancement des tâches et observations par support.";
-    chargerTableauGlobal();
-  } else if (tableActive === "recap_chantiers") {
-    if (sectionAjout) sectionAjout.style.display = "none";
-    if (titreTableau) titreTableau.textContent = "📊 Récapitulatif Global des Chantiers";
-    if (descTableau) descTableau.textContent = "Synthèse croisée des volumes de blindage et de l'avancement des caténaires.";
-    chargerRecapitulatifChantiers();
-  }
-}
-
-// Fonction pour récupérer les deux tables et générer le visuel de synthèse
-// Fonction pour récupérer les deux tables et générer le récapitulatif avec la bonne logique pour le "Prévu à date"
+/* ============================================================
+   RÉCAPITULATIF GLOBAL PAR CHANTIER
+   ============================================================ */
 async function chargerRecapitulatifChantiers() {
   const container = document.getElementById("utilisateurs-container");
   if (!container) return;
@@ -427,15 +402,13 @@ async function chargerRecapitulatifChantiers() {
       const m3Prevu = parseFloat(row.m3_prevu || row.m3_prevu_total || 0);
       const m3Reel = parseFloat(row.m3_reel || row.m3_reel_date || 0);
 
-      // 1. M3 Prévu Total = Somme de tous les prévus
       chantiersMap[chantier].m3PrevuTotal += m3Prevu;
 
-      // 2. M3 Prévu à date = Somme des M3 prévus uniquement si le réel n'est ni null/undefined ni zéro
+      // Prévu à date : Somme des prévus uniquement si le réel n'est ni null/undefined ni zéro
       if (row.m3_reel !== null && row.m3_reel !== undefined && m3Reel !== 0) {
         chantiersMap[chantier].m3PrevuADate += m3Prevu;
       }
 
-      // 3. M3 Réel à date = Somme des réels
       chantiersMap[chantier].m3ReelDate += m3Reel;
     });
 
@@ -446,7 +419,7 @@ async function chargerRecapitulatifChantiers() {
         chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuADate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
       }
       chantiersMap[chantier].totalTaches += 1;
-      if (row.Fait === true) {
+      if (row.Fait === true || row.Fait === 'true') {
         chantiersMap[chantier].tachesFaites += 1;
       }
     });
