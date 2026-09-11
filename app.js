@@ -8,9 +8,10 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const MOT_DE_PASSE_ADMIN = "Lebob18";
 
-// Variable pour suivre la table active et stocker les données brutes
+// Variable pour suivre la table active, les données et la ligne sélectionnée
 let tableActive = "app_bob";
 let donneesBrutes = [];
+let idLigneSelectionnee = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   if (sessionStorage.getItem("admin_connecte") === "true") {
@@ -48,6 +49,7 @@ function afficherApplication() {
    ============================================================ */
 function changerTableActive(nomTable) {
   tableActive = nomTable;
+  idLigneSelectionnee = null; // Réinitialiser la sélection au changement de table
   
   const sectionAjout = document.getElementById("section-ajout");
   const titreTableau = document.getElementById("titre-tableau");
@@ -60,7 +62,7 @@ function changerTableActive(nomTable) {
   } else if (tableActive === "blindage") {
     if (sectionAjout) sectionAjout.style.display = "none";
     if (titreTableau) titreTableau.textContent = "🏗️ Pilotage de la table Blindage";
-    if (descTableau) descTableau.textContent = "Utilise les filtres sous chaque colonne pour rechercher (ex: support, chantier...).";
+    if (descTableau) descTableau.textContent = "Utilise les filtres au-dessus de chaque colonne pour rechercher.";
   } else if (tableActive === "suivi_tx_cat") {
     if (sectionAjout) sectionAjout.style.display = "none";
     if (titreTableau) titreTableau.textContent = "⚡ Suivi des Travaux Caténaires (suivi_tx_cat)";
@@ -71,7 +73,7 @@ function changerTableActive(nomTable) {
 }
 
 /* ============================================================
-   PILOTAGE GLOBAL DES TABLES & FILTRAGE FAÇON EXCEL
+   PILOTAGE GLOBAL DES TABLES & RECHERCHE SANS PERTE DE FOCUS
    ============================================================ */
 async function chargerTableauGlobal() {
   const container = document.getElementById("utilisateurs-container");
@@ -92,7 +94,8 @@ async function chargerTableauGlobal() {
     }
 
     donneesBrutes = data;
-    afficherTableauFiltre();
+    initialiserStructureTableau();
+    filtrerLignesTableau();
 
   } catch (err) {
     console.error("Erreur chargement :", err);
@@ -100,29 +103,13 @@ async function chargerTableauGlobal() {
   }
 }
 
-function afficherTableauFiltre() {
+// Crée la structure fixe du tableau une seule fois
+function initialiserStructureTableau() {
   const container = document.getElementById("utilisateurs-container");
   if (!donneesBrutes || donneesBrutes.length === 0) return;
 
   const colonnes = Object.keys(donneesBrutes[0]);
 
-  // Récupération des valeurs des filtres saisis par l'utilisateur
-  const filtres = {};
-  colonnes.forEach(col => {
-    const inputFiltre = document.getElementById(`filtre-${col}`);
-    filtres[col] = inputFiltre ? inputFiltre.value.toLowerCase().trim() : "";
-  });
-
-  // Filtrage des données brutes
-  const donneesFiltrees = donneesBrutes.filter(row => {
-    return colonnes.every(col => {
-      if (!filtres[col]) return true;
-      const valCellule = String(row[col] !== null && row[col] !== undefined ? row[col] : "").toLowerCase();
-      return valCellule.includes(filtres[col]);
-    });
-  });
-
-  // Construction du HTML avec en-têtes et lignes de filtres fixes (sticky)
   let html = `
     <style>
       .tableau-excel-container {
@@ -143,23 +130,36 @@ function afficherTableauFiltre() {
         border-bottom: 1px solid #eee;
         background: #fff;
       }
+      /* Effet de survol standard de la ligne */
+      .tableau-excel-container tbody tr:hover td {
+        background-color: #f1f5f9 !important;
+      }
+      /* Style de la ligne sélectionnée (clic sur l'ID) */
+      .tableau-excel-container tbody tr.ligne-selectionnee td {
+        background-color: #fdf4ff !important; /* Fond légèrement mauve/rose assorti au thème */
+        border-top: 1px solid #7C2270;
+        border-bottom: 1px solid #7C2270;
+      }
+      /* Ligne de recherche tout en haut (sticky 1) */
       .tableau-excel-container thead tr:nth-child(1) th {
         position: sticky;
         top: 0;
-        background: #f3f4f6;
+        background: #f9fafb;
         z-index: 10;
+        border-bottom: 2px solid #d1d5db;
+        padding: 6px;
+      }
+      /* En-têtes des colonnes juste en dessous (sticky 2) */
+      .tableau-excel-container thead tr:nth-child(2) th {
+        position: sticky;
+        top: 41px; 
+        background: #f3f4f6;
+        z-index: 9;
         border-bottom: 2px solid #d1d5db;
         text-transform: uppercase;
         font-size: 0.75em;
         color: #374151;
-      }
-      .tableau-excel-container thead tr:nth-child(2) th {
-        position: sticky;
-        top: 31px;
-        background: #f9fafb;
-        z-index: 9;
-        border-bottom: 2px solid #d1d5db;
-        padding: 4px 6px;
+        padding: 8px;
       }
       .input-filtre-colonne {
         width: 100%;
@@ -174,7 +174,21 @@ function afficherTableauFiltre() {
     <div class="tableau-excel-container">
       <table>
         <thead>
-          <!-- Ligne 1 : Noms des colonnes -->
+          <!-- Ligne 1 : Champs de recherche au-dessus des en-têtes -->
+          <tr>
+  `;
+
+  colonnes.forEach(col => {
+    html += `
+      <th>
+        <input type="text" id="filtre-${col}" placeholder="Filtrer..." class="input-filtre-colonne" oninput="filtrerLignesTableau()">
+      </th>
+    `;
+  });
+
+  html += `
+          </tr>
+          <!-- Ligne 2 : Noms des colonnes -->
           <tr>
   `;
 
@@ -184,62 +198,91 @@ function afficherTableauFiltre() {
 
   html += `
           </tr>
-          <!-- Ligne 2 : Champs de recherche par colonne (façon Excel) -->
-          <tr>
+        </thead>
+        <tbody id="corps-tableau-supabase">
+        </tbody>
+      </table>
+    </div>
   `;
 
+  container.innerHTML = html;
+}
+
+// Met à jour uniquement le contenu du <tbody> pour garder le focus clavier intact
+function filtrerLignesTableau() {
+  const tbody = document.getElementById("corps-tableau-supabase");
+  if (!tbody || !donneesBrutes || donneesBrutes.length === 0) return;
+
+  const colonnes = Object.keys(donneesBrutes[0]);
+
+  // Récupérer les filtres actifs
+  const filtres = {};
   colonnes.forEach(col => {
-    const valeurFiltreActuel = filtres[col] || "";
-    html += `
-      <th>
-        <input type="text" id="filtre-${col}" value="${valeurFiltreActuel}" placeholder="Filtrer..." class="input-filtre-colonne" oninput="afficherTableauFiltre()">
-      </th>
-    `;
+    const inputFiltre = document.getElementById(`filtre-${col}`);
+    filtres[col] = inputFiltre ? inputFiltre.value.toLowerCase().trim() : "";
   });
 
-  html += `
-          </tr>
-        </thead>
-        <tbody>
-  `;
+  // Filtrer les données
+  const donneesFiltrees = donneesBrutes.filter(row => {
+    return colonnes.every(col => {
+      if (!filtres[col]) return true;
+      const valCellule = String(row[col] !== null && row[col] !== undefined ? row[col] : "").toLowerCase();
+      return valCellule.includes(filtres[col]);
+    });
+  });
+
+  let htmlRows = "";
 
   if (donneesFiltrees.length === 0) {
-    html += `<tr><td colspan="${colonnes.length}" style="text-align: center; color: #999; padding: 20px;">Aucun résultat trouvé pour ces filtres.</td></tr>`;
+    htmlRows = `<tr><td colspan="${colonnes.length}" style="text-align: center; color: #999; padding: 20px;">Aucun résultat trouvé pour ces filtres.</td></tr>`;
   } else {
+    donneesFiltrees.exec = donneesFiltrees.forEach ? true : true; // dummy
     donneesFiltrees.forEach(row => {
       const idLigne = row.id;
+      const estSelectionne = (idLigne === idLigneSelectionnee) ? "ligne-selectionnee" : "";
 
-      html += `<tr>`;
+      htmlRows += `<tr class="${estSelectionne}">`;
       colonnes.forEach(col => {
         let valeur = row[col];
 
-        // 1. Colonnes en lecture seule
-        if (col === 'id' || col === 'created_at' || col === 'updated_at') {
-          html += `<td style="color: #888;">${valeur !== null && valeur !== undefined ? valeur : ''}</td>`;
+        // 1. Colonnes en lecture seule (le clic sur l'ID bascule la sélection de la ligne)
+        if (col === 'id') {
+          htmlRows += `<td onclick="basculerSelectionLigne(${idLigne})" style="color: #7C2270; font-weight: bold; cursor: pointer;" title="Cliquer pour fixer/libérer la ligne">${valeur}</td>`;
+        } else if (col === 'created_at' || col === 'updated_at') {
+          htmlRows += `<td style="color: #888;">${valeur !== null && valeur !== undefined ? valeur : ''}</td>`;
         }
-        // 2. Booléens en cases à cocher (comme la colonne 'Fait')
+        // 2. Booléens en cases à cocher
         else if (typeof valeur === 'boolean' || valeur === true || valeur === false) {
           const estCoche = valeur ? 'checked' : '';
-          html += `<td style="text-align: center;">
-                    <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
-                   </td>`;
+          htmlRows += `<td style="text-align: center;">
+                        <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
+                       </td>`;
         } 
-        // 3. Champs texte éditables (comme 'Chantier', 'Support', 'Tache', 'Observation')
+        // 3. Champs texte éditables
         else {
           if (valeur === null || valeur === undefined) valeur = '';
           let extraAttr = (col === 'entreprise') ? `oninput="this.value = this.value.toUpperCase()"` : '';
 
-          html += `<td>
-                    <input type="text" value="${valeur}" ${extraAttr} onchange="modifierChampTexteSupabase(${idLigne}, '${col}', this.value)" style="padding: 4px; font-size: 0.8em; border: 1px solid #ccc; border-radius: 4px; width: 110px;">
-                   </td>`;
+          htmlRows += `<td>
+                        <input type="text" value="${valeur}" ${extraAttr} onchange="modifierChampTexteSupabase(${idLigne}, '${col}', this.value)" style="padding: 4px; font-size: 0.8em; border: 1px solid #ccc; border-radius: 4px; width: 110px;">
+                       </td>`;
         }
       });
-      html += `</tr>`;
+      htmlRows += `</tr>`;
     });
   }
 
-  html += `</tbody></table></div>`;
-  container.innerHTML = html;
+  tbody.innerHTML = htmlRows;
+}
+
+// Fonction pour basculer la sélection d'une ligne en cliquant sur son ID
+function basculerSelectionLigne(idLigne) {
+  if (idLigneSelectionnee === idLigne) {
+    idLigneSelectionnee = null; // Désélectionner si on clique à nouveau
+  } else {
+    idLigneSelectionnee = idLigne; // Sélectionner la nouvelle ligne
+  }
+  filtrerLignesTableau(); // Rafraîchir l'affichage sans perdre les filtres
 }
 
 async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
