@@ -430,9 +430,9 @@ async function chargerRecapitulatifChantiers() {
           <thead>
             <tr style="background: #f3f4f6; color: #374151; text-transform: uppercase; font-size: 0.75em;">
               <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: left;">Chantier</th>
-              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Blindage : Prévu Total (m³)</th>
-              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Blindage : Prévu à Date (m³)</th>
-              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Blindage : Réel à Date (m³)</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Béton : Total (m³)</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Béton : Date (m³)</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Béton : Calculé à Date (m³)</th>
               <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Caténaires : Avancement Tâches</th>
               <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Taux de Réalisation Caténaires</th>
             </tr>
