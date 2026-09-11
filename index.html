@@ -27,12 +27,21 @@
     <!-- Contenu Principal -->
     <div id="main-app" style="display:none; max-width: 95%; margin: 0 auto; padding: 15px;">
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="font-size: 1.3em; color: #7C2270;">⚙️ Pilotage Central app_bob</h1>
+            <h1 style="font-size: 1.3em; color: #7C2270;">⚙️ Pilotage Central</h1>
             <button onclick="deconnexionAdmin()" style="background:#eee; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em;">Déconnexion</button>
         </header>
 
+        <!-- Sélecteur de table -->
+        <div style="margin-bottom: 20px; background: #f9f9f9; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 10px; border: 1px solid #e5e7eb;">
+            <label for="select-table" style="font-weight: bold; font-size: 0.9em; color: #7C2270;">📂 Table active :</label>
+            <select id="select-table" onchange="changerTableActive(this.value)" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1;">
+                <option value="app_bob">👥 app_bob (Utilisateurs & Accès)</option>
+                <option value="blindage">🏗️ blindage (Chantiers & Blindage)</option>
+            </select>
+        </div>
+
         <!-- Section : Ajouter un utilisateur -->
-        <section class="card" style="margin-bottom: 20px;">
+        <section id="section-ajout" class="card" style="margin-bottom: 20px;">
             <h2>➕ Ajouter un nouvel utilisateur</h2>
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
                 <input type="email" id="new-email" placeholder="Email..." style="flex: 2; min-width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
@@ -46,10 +55,10 @@
         <!-- Section : Matrice des Accès -->
         <section class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2>👥 Matrice des Accès (Utilisateurs & Chantiers)</h2>
+                <h2 id="titre-tableau">👥 Matrice des Accès (Utilisateurs & Chantiers)</h2>
                 <button onclick="chargerTableauGlobal()" style="background:#e5e7eb; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:0.85em; font-weight:bold;">🔄 Actualiser</button>
             </div>
-            <p style="font-size: 0.85em; color: #666; margin-bottom: 15px;">Coche ou décoche directement pour modifier les accès en temps réel.</p>
+            <p id="desc-tableau" style="font-size: 0.85em; color: #666; margin-bottom: 15px;">Coche ou décoche directement pour modifier les accès en temps réel.</p>
             
             <div id="utilisateurs-container">
                 <p style="color:#999; font-size:0.9em;">Chargement...</p>
