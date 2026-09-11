@@ -316,23 +316,29 @@ async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
 
 async function modifierChampTexteSupabase(idLigne, colonne, nouvelleValeur) {
   try {
-    const updateData = {};
-    updateData[colonne] = (colonne === 'entreprise') ? nouvelleValeur.trim().toUpperCase() : nouvelleValeur.trim();
+    // Convertir l'ID en nombre entier si c'est un chiffre (pour correspondre au type 'int8' de Supabase si besoin)
+    const idPropre = !isNaN(idLigne) ? parseInt(idLigne, 10) : idLigne;
 
-    const { error } = await supabaseClient
+    const updateData = {};
+    updateData[colonne] = (colonne === 'entreprise' || colonne === 'chantier') ? nouvelleValeur.trim().toUpperCase() : nouvelleValeur.trim();
+
+    console.log(`Envoi Supabase -> Table: ${tableActive}, ID: ${idPropre} (${typeof idPropre}), Colonne: ${colonne}, Valeur:`, updateData[colonne]);
+
+    const { data, error } = await supabaseClient
       .from(tableActive)
       .update(updateData)
-      .eq('id', String(idLigne));
+      .eq('id', idPropre);
 
     if (error) throw error;
 
+    // Mettre à jour le cache local
     const ligneModifiee = donneesBrutes.find(r => r.id == idLigne);
     if (ligneModifiee) ligneModifiee[colonne] = updateData[colonne];
 
-    console.log(`Mise à jour [${colonne}] validée pour l'ID ${idLigne} dans ${tableActive} !`);
+    console.log(`✅ Mise à jour validée et enregistrée pour l'ID ${idLigne} !`);
   } catch (err) {
-    console.error("Erreur détaillée Supabase :", err);
-    alert("❌ Erreur lors de la mise à jour du texte : " + (err.message || err));
+    console.error("❌ Erreur détaillée Supabase :", err);
+    alert("❌ Erreur lors de la mise à jour : " + (err.message || JSON.stringify(err)));
     chargerTableauGlobal();
   }
 }
