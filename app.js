@@ -61,6 +61,10 @@ function changerTableActive(nomTable) {
     if (sectionAjout) sectionAjout.style.display = "none";
     if (titreTableau) titreTableau.textContent = "🏗️ Pilotage de la table Blindage";
     if (descTableau) descTableau.textContent = "Utilise les filtres sous chaque colonne pour rechercher (ex: support, chantier...).";
+  } else if (tableActive === "suivi_tx_cat") {
+    if (sectionAjout) sectionAjout.style.display = "none";
+    if (titreTableau) titreTableau.textContent = "⚡ Suivi des Travaux Caténaires (suivi_tx_cat)";
+    if (descTableau) descTableau.textContent = "Pilote l'avancement des tâches et observations par support.";
   }
 
   chargerTableauGlobal();
@@ -83,7 +87,7 @@ async function chargerTableauGlobal() {
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      container.innerHTML = `<p style="color:#999; font-size:0.9em;">Aucune donnée trouvée dans ${tableActive}.</p>";
+      container.innerHTML = `<p style="color:#999; font-size:0.9em;">Aucune donnée trouvée dans ${tableActive}.</p>`;
       return;
     }
 
@@ -110,7 +114,7 @@ function afficherTableauFiltre() {
   });
 
   // Filtrage des données brutes
-  const donneesFiltrees = donneesBrutes.reverse().filter(row => { // Optionnel: .reverse() ou ordre normal
+  const donneesFiltrees = donneesBrutes.filter(row => {
     return colonnes.every(col => {
       if (!filtres[col]) return true;
       const valCellule = String(row[col] !== null && row[col] !== undefined ? row[col] : "").toLowerCase();
@@ -151,7 +155,7 @@ function afficherTableauFiltre() {
       }
       .tableau-excel-container thead tr:nth-child(2) th {
         position: sticky;
-        top: 31px; /* Hauteur approximative de la première ligne th */
+        top: 31px;
         background: #f9fafb;
         z-index: 9;
         border-bottom: 2px solid #d1d5db;
@@ -213,14 +217,14 @@ function afficherTableauFiltre() {
         if (col === 'id' || col === 'created_at' || col === 'updated_at') {
           html += `<td style="color: #888;">${valeur !== null && valeur !== undefined ? valeur : ''}</td>`;
         }
-        // 2. Booléens en cases à cocher
+        // 2. Booléens en cases à cocher (comme la colonne 'Fait')
         else if (typeof valeur === 'boolean' || valeur === true || valeur === false) {
           const estCoche = valeur ? 'checked' : '';
           html += `<td style="text-align: center;">
                     <input type="checkbox" ${estCoche} onchange="modifierCaseSupabase(${idLigne}, '${col}', this.checked)" style="transform: scale(1.1); cursor: pointer;">
                    </td>`;
         } 
-        // 3. Champs texte éditables
+        // 3. Champs texte éditables (comme 'Chantier', 'Support', 'Tache', 'Observation')
         else {
           if (valeur === null || valeur === undefined) valeur = '';
           let extraAttr = (col === 'entreprise') ? `oninput="this.value = this.value.toUpperCase()"` : '';
@@ -250,7 +254,6 @@ async function modifierCaseSupabase(idLigne, colonne, nouvelleValeur) {
 
     if (error) throw error;
     
-    // Mettre à jour localement les données brutes pour éviter de tout recharger
     const ligneModifiee = donneesBrutes.find(r => r.id == idLigne);
     if (ligneModifiee) ligneModifiee[colonne] = nouvelleValeur;
 
@@ -274,7 +277,6 @@ async function modifierChampTexteSupabase(idLigne, colonne, nouvelleValeur) {
 
     if (error) throw error;
 
-    // Mettre à jour localement les données brutes
     const ligneModifiee = donneesBrutes.find(r => r.id == idLigne);
     if (ligneModifiee) ligneModifiee[colonne] = updateData[colonne];
 
