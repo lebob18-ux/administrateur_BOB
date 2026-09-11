@@ -364,3 +364,137 @@ async function ajouterUtilisateur() {
     alert("❌ Erreur lors de l'ajout de l'utilisateur : " + err.message);
   }
 }
+// Dans changerTableActive, ajoute la gestion de l'affichage pour le récap
+function changerTableActive(nomTable) {
+  tableActive = nomTable;
+  idLigneSelectionnee = null;
+  
+  const sectionAjout = document.getElementById("section-ajout");
+  const titreTableau = document.getElementById("titre-tableau");
+  const descTableau = document.getElementById("desc-tableau");
+
+  if (tableActive === "app_bob") {
+    if (sectionAjout) sectionAjout.style.display = "block";
+    if (titreTableau) titreTableau.textContent = "👥 Matrice des Accès (Utilisateurs & Chantiers)";
+    if (descTableau) descTableau.textContent = "Coche ou décoche directement pour modifier les accès en temps réel.";
+    chargerTableauGlobal();
+  } else if (tableActive === "blindage") {
+    if (sectionAjout) sectionAjout.style.display = "none";
+    if (titreTableau) titreTableau.textContent = "🏗️ Pilotage de la table Blindage";
+    if (descTableau) descTableau.textContent = "Utilise les filtres au-dessus de chaque colonne pour rechercher.";
+    chargerTableauGlobal();
+  } else if (tableActive === "suivi_tx_cat") {
+    if (sectionAjout) sectionAjout.style.display = "none";
+    if (titreTableau) titreTableau.textContent = "⚡ Suivi des Travaux Caténaires (suivi_tx_cat)";
+    if (descTableau) descTableau.textContent = "Pilote l'avancement des tâches et observations par support.";
+    chargerTableauGlobal();
+  } else if (tableActive === "recap_chantiers") {
+    if (sectionAjout) sectionAjout.style.display = "none";
+    if (titreTableau) titreTableau.textContent = "📊 Récapitulatif Global des Chantiers";
+    if (descTableau) descTableau.textContent = "Synthèse croisée des volumes de blindage et de l'avancement des caténaires.";
+    chargerRecapitulatifChantiers();
+  }
+}
+
+// Fonction pour récupérer les deux tables et générer le visuel de synthèse
+async function chargerRecapitulatifChantiers() {
+  const container = document.getElementById("utilisateurs-container");
+  if (!container) return;
+  container.innerHTML = `<p style="color:#666; font-size:0.9em;">Génération de la synthèse globale en cours...</p>`;
+
+  try {
+    // Récupération en parallèle des deux tables de chantier
+    const [resBlindage, resCat] = await Promise.all([
+      supabaseClient.from('blindage').select('*').range(0, 9999),
+      supabaseClient.from('suivi_tx_cat').select('*').range(0, 9999)
+    ]);
+
+    if (resBlindage.error) throw resBlindage.error;
+    if (resCat.error) throw resCat.error;
+
+    const dataBlindage = resBlindage.data || [];
+    const dataCat = resCat.data || [];
+
+    // Regroupement par chantier
+    const chantiersMap = {};
+
+    // Traitement Blindage (m3)
+    dataBlindage.forEach(row => {
+      const chantier = row.chantier ? row.chantier.trim().toUpperCase() : "INCONNU";
+      if (!chantiersMap[chantier]) {
+        chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuDate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
+      }
+      chantiersMap[chantier].m3PrevuTotal += parseFloat(row.m3_prevu_total || row.m3_prevu || 0);
+      chantiersMap[chantier].m3PrevuDate += parseFloat(row.m3_prevu_date || 0);
+      chantiersMap[chantier].m3ReelDate += parseFloat(row.m3_reel_date || row.m3_reel || 0);
+    });
+
+    // Traitement Caténaires (Tâches)
+    dataCat.forEach(row => {
+      const chantier = row.Chantier ? row.Chantier.trim().toUpperCase() : "INCONNU";
+      if (!chantiersMap[chantier]) {
+        chantiersMap[chantier] = { m3PrevuTotal: 0, m3PrevuDate: 0, m3ReelDate: 0, totalTaches: 0, tachesFaites: 0 };
+      }
+      chantiersMap[chantier].totalTaches += 1;
+      if (row.Fait === true) {
+        chantiersMap[chantier].tachesFaites += 1;
+      }
+    });
+
+    // Construction du tableau visuel de synthèse
+    let html = `
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 0.85em;">
+          <thead>
+            <tr style="background: #f3f4f6; color: #374151; text-transform: uppercase; font-size: 0.75em;">
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: left;">Chantier</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Blindage : Prévu Total (m³)</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Blindage : Prévu à Date (m³)</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Blindage : Réel à Date (m³)</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Caténaires : Avancement Tâches</th>
+              <th style="padding: 10px; border-bottom: 2px solid #d1d5db; text-align: center;">Taux de Réalisation Caténaires</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    const nomsChantiers = Object.keys(chantiersMap).sort();
+
+    if (nomsChantiers.length === 0) {
+      html += `<tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">Aucune donnée disponible pour le récapitulatif.</td></tr>`;
+    } else {
+      nomsChantiers.forEach(chantier => {
+        const c = chantiersMap[chantier];
+        const tauxCat = c.totalTaches > 0 ? Math.round((c.tachesFaites / c.totalTaches) * 100) : 0;
+        
+        // Couleur dynamique pour la barre de progression caténaire
+        let couleurBadge = "#dc2626"; // Rouge
+        if (tauxCat > 40) couleurBadge = "#d97706"; // Orange
+        if (tauxCat > 80) couleurBadge = "#16a34a"; // Vert
+
+        html += `
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px; font-weight: bold; color: #7C2270;">🏢 ${chantier}</td>
+            <td style="padding: 10px; text-align: center;">${c.m3PrevuTotal.toFixed(1)}</td>
+            <td style="padding: 10px; text-align: center;">${c.m3PrevuDate.toFixed(1)}</td>
+            <td style="padding: 10px; text-align: center; font-weight: bold;">${c.m3ReelDate.toFixed(1)}</td>
+            <td style="padding: 10px; text-align: center;">${c.tachesFaites} / ${c.totalTaches} tâches</td>
+            <td style="padding: 10px; text-align: center;">
+              <div style="background: #e5e7eb; border-radius: 4px; overflow: hidden; display: inline-block; width: 100px; height: 14px; vertical-align: middle; margin-right: 6px;">
+                <div style="background: ${couleurBadge}; width: ${tauxCat}%; height: 100%;"></div>
+              </div>
+              <span style="font-size: 0.8em; font-weight: bold;">${tauxCat}%</span>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.error("Erreur récapitulatif :", err);
+    container.innerHTML = `<p style="color:#dc2626; font-size:0.9em;">Erreur lors du calcul du récapitulatif des chantiers.</p>`;
+  }
+}
