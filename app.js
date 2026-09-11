@@ -110,6 +110,7 @@ async function chargerTableauGlobal() {
 }
 
 // Crée la structure fixe du tableau une seule fois
+// Crée la structure fixe du tableau une seule fois
 function initialiserStructureTableau() {
   const container = document.getElementById("utilisateurs-container");
   if (!donneesBrutes || donneesBrutes.length === 0) return;
@@ -146,26 +147,26 @@ function initialiserStructureTableau() {
         border-top: 1px solid #7C2270;
         border-bottom: 1px solid #7C2270;
       }
-      /* Ligne de recherche tout en haut (sticky 1) */
+      /* Ligne 1 (En-têtes) : Fixée tout en haut (sticky 1) */
       .tableau-excel-container thead tr:nth-child(1) th {
         position: sticky;
         top: 0;
-        background: #f9fafb;
-        z-index: 10;
-        border-bottom: 2px solid #d1d5db;
-        padding: 6px;
-      }
-      /* En-têtes des colonnes juste en dessous (sticky 2) */
-      .tableau-excel-container thead tr:nth-child(2) th {
-        position: sticky;
-        top: 41px; 
         background: #f3f4f6;
-        z-index: 9;
+        z-index: 10;
         border-bottom: 2px solid #d1d5db;
         text-transform: uppercase;
         font-size: 0.75em;
         color: #374151;
         padding: 8px;
+      }
+      /* Ligne 2 (Filtres) : Fixée juste en dessous des en-têtes (sticky 2) */
+      .tableau-excel-container thead tr:nth-child(2) th {
+        position: sticky;
+        top: 33px; /* S'adapte à la hauteur de la ligne d'en-tête */
+        background: #f9fafb;
+        z-index: 9;
+        border-bottom: 2px solid #d1d5db;
+        padding: 6px;
       }
       .input-filtre-colonne {
         width: 100%;
@@ -180,7 +181,17 @@ function initialiserStructureTableau() {
     <div class="tableau-excel-container">
       <table>
         <thead>
-          <!-- Ligne 1 : Champs de recherche au-dessus des en-têtes -->
+          <!-- Ligne 1 : Noms des colonnes tout en haut -->
+          <tr>
+  `;
+
+  colonnes.forEach(col => {
+    html += `<th>${col}</th>`;
+  });
+
+  html += `
+          </tr>
+          <!-- Ligne 2 : Champs de recherche juste en dessous des en-têtes -->
           <tr>
   `;
 
@@ -190,16 +201,6 @@ function initialiserStructureTableau() {
         <input type="text" id="filtre-${col}" placeholder="Filtrer..." class="input-filtre-colonne" oninput="filtrerLignesTableau()">
       </th>
     `;
-  });
-
-  html += `
-          </tr>
-          <!-- Ligne 2 : Noms des colonnes -->
-          <tr>
-  `;
-
-  colonnes.forEach(col => {
-    html += `<th>${col}</th>`;
   });
 
   html += `
